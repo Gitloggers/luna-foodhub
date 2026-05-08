@@ -155,7 +155,10 @@ async function loadVenues() {
       const seen = new Set();
       state.venues = allResults
         .filter(v => { if (seen.has(v.place_id)) return false; seen.add(v.place_id); return true; })
-        .sort((a, b) => b.rating - a.rating);
+        .sort((a, b) => {
+          if (b.rating !== a.rating) return b.rating - a.rating;
+          return b.user_ratings_total - a.user_ratings_total;
+        });
     }
   } catch {
     state.demoMode = true;
@@ -303,6 +306,16 @@ async function openModal(id) {
     photo.parentElement.querySelector('.modal-photo-overlay').innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:5rem;opacity:0.4">${venue.emoji || catEmoji}</div>`;
   }
 
+  // Phone
+  const phoneEl = document.getElementById('modal-phone');
+  phoneEl.textContent = venue.phone || '';
+  phoneEl.style.display = venue.phone ? 'flex' : 'none';
+
+  // Description
+  const descEl = document.getElementById('modal-description');
+  descEl.textContent = venue.description || '';
+  descEl.style.display = venue.description ? 'block' : 'none';
+
   // Meta
   const metaEl = document.getElementById('modal-meta');
   metaEl.innerHTML = [
@@ -310,14 +323,6 @@ async function openModal(id) {
     venue.open_now !== undefined ? `<span class="modal-meta-item ${venue.open_now ? '' : 'closed'}">${venue.open_now ? '🟢 Open Now' : '🔴 Closed'}</span>` : '',
     ...(venue.tags || []).map(t => `<span class="modal-meta-item">${t}</span>`),
   ].join('');
-
-  // Description
-  if (venue.description) {
-    const desc = document.createElement('p');
-    desc.style.cssText = 'color:var(--text-muted);font-size:0.9rem;line-height:1.7;margin-bottom:1rem';
-    desc.textContent = venue.description;
-    metaEl.after(desc);
-  }
 
   // Hours
   const hoursEl = document.getElementById('modal-hours');
@@ -358,6 +363,14 @@ async function openModal(id) {
       }
       if (r?.website) {
         document.getElementById('modal-actions').innerHTML += `<a class="btn-modal-action btn-modal-secondary" href="${r.website}" target="_blank" rel="noopener">🌐 Website</a>`;
+      }
+      if (r?.formatted_phone_number) {
+        phoneEl.textContent = r.formatted_phone_number;
+        phoneEl.style.display = 'flex';
+      }
+      if (r?.editorial_summary) {
+        descEl.textContent = r.editorial_summary;
+        descEl.style.display = 'block';
       }
     } catch {}
   }

@@ -112,7 +112,7 @@ app.get('/api/places/search', async (req, res) => {
     const headers = {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': PLACES_KEY,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.rating,places.userRatingCount,places.priceLevel,places.primaryType,places.shortFormattedAddress,places.photos,places.regularOpeningHours'
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.rating,places.userRatingCount,places.priceLevel,places.primaryType,places.shortFormattedAddress,places.photos,places.regularOpeningHours,places.nationalPhoneNumber'
     };
 
     const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
@@ -134,11 +134,16 @@ app.get('/api/places/search', async (req, res) => {
         types: p.primaryType ? [p.primaryType] : [],
         vicinity: p.shortFormattedAddress || '',
         photos: photo_reference ? [{ photo_reference }] : [],
-        open_now: p.regularOpeningHours ? p.regularOpeningHours.openNow : undefined
+        open_now: p.regularOpeningHours ? p.regularOpeningHours.openNow : undefined,
+        phone: p.nationalPhoneNumber || ''
       };
     });
 
-    const filtered = results.filter(p => p.rating >= 3.5).sort((a, b) => b.rating - a.rating);
+    // Better sorting: rating first, then number of reviews as tie-breaker
+    const filtered = results.filter(p => p.rating >= 3.5).sort((a, b) => {
+      if (b.rating !== a.rating) return b.rating - a.rating;
+      return b.user_ratings_total - a.user_ratings_total;
+    });
     res.json({ results: filtered, status: 'OK' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -156,7 +161,7 @@ app.get('/api/places/details', async (req, res) => {
     const url = `https://places.googleapis.com/v1/places/${place_id}`;
     const headers = {
       'X-Goog-Api-Key': PLACES_KEY,
-      'X-Goog-FieldMask': 'id,displayName,rating,userRatingCount,regularOpeningHours,websiteUri,reviews'
+      'X-Goog-FieldMask': 'id,displayName,rating,userRatingCount,regularOpeningHours,websiteUri,reviews,nationalPhoneNumber,editorialSummary'
     };
     const response = await fetch(url, { headers });
     const data = await response.json();
@@ -166,10 +171,13 @@ app.get('/api/places/details', async (req, res) => {
     const legacyResult = {
       opening_hours: { weekday_text: data.regularOpeningHours ? data.regularOpeningHours.weekdayDescriptions : [] },
       website: data.websiteUri || '',
+      formatted_phone_number: data.nationalPhoneNumber || '',
+      editorial_summary: data.editorialSummary ? data.editorialSummary.text : '',
       reviews: (data.reviews || []).map(r => ({
         author_name: r.authorAttribution ? r.authorAttribution.displayName : 'Anonymous',
         rating: r.rating || 0,
-        text: r.text ? r.text.text : ''
+        text: r.text ? r.text.text : '',
+        time_description: r.relativePublishTimeDescription || ''
       }))
     };
     res.json({ result: legacyResult, status: 'OK' });
