@@ -115,8 +115,8 @@ app.get('/api/places/search', async (req, res) => {
     const url = 'https://places.googleapis.com/v1/places:searchText';
     const body = {
       textQuery: q,
-      locationRestriction: {
-        circle: { center: { latitude: parseFloat(lat), longitude: parseFloat(lng) }, radius: 20000.0 }
+      locationBias: {
+        circle: { center: { latitude: parseFloat(lat), longitude: parseFloat(lng) }, radius: 10000.0 }
       },
       maxResultCount: 15
     };

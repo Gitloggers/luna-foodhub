@@ -492,10 +492,10 @@ async function handleCraving() {
 
   try {
     const prompt = `You are LUNA, an AI food discovery assistant. A user said: "${query}"
-Analyze this craving and respond with a JSON object (no markdown, just raw JSON):
+Analyze this craving and respond with a JSON object:
 {
-  "summary": "one short sentence explaining what you found for them",
-  "searchQuery": "A concise search query to send to Google Maps to find exactly this food (e.g. 'ramen', 'sweet desserts', 'cozy cafe', 'spicy seafood')",
+  "summary": "one short sentence explaining what you found",
+  "searchQuery": "A simple search query for Google Maps (e.g. 'bars', 'pizza', 'korean food'). DO NOT add fancy adjectives like 'craft' or 'gourmet' unless the user explicitly asked for them. Keep it simple to find local spots.",
   "categories": ["restaurant"|"cafe"|"bar"|"bakery"|"dessert"|"fastfood"]
 }`;
 
