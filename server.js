@@ -115,8 +115,8 @@ app.get('/api/places/search', async (req, res) => {
     const url = 'https://places.googleapis.com/v1/places:searchText';
     const body = {
       textQuery: q,
-      locationBias: {
-        circle: { center: { latitude: parseFloat(lat), longitude: parseFloat(lng) }, radius: parseFloat(radius) }
+      locationRestriction: {
+        circle: { center: { latitude: parseFloat(lat), longitude: parseFloat(lng) }, radius: 20000.0 }
       },
       maxResultCount: 15
     };
@@ -164,10 +164,10 @@ app.get('/api/places/search', async (req, res) => {
     });
 
     // Score = (Rating Confidence) - (Distance Penalty)
-    // Distance penalty: -0.2 points per kilometer
+    // Distance penalty: -0.5 points per kilometer (Aggressive local bias)
     const getScore = (v) => {
       const confidence = v.rating * (1 - (1 / (v.user_ratings_total + 1)));
-      return confidence - (v.distance * 0.2);
+      return confidence - (v.distance * 0.5);
     };
 
     const filtered = results.sort((a, b) => getScore(b) - getScore(a));
