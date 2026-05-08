@@ -153,12 +153,10 @@ async function loadVenues() {
         } catch {}
       }
       const seen = new Set();
+      const getScore = (v) => v.rating * (1 - (1 / (v.user_ratings_total + 1)));
       state.venues = allResults
         .filter(v => { if (seen.has(v.place_id)) return false; seen.add(v.place_id); return true; })
-        .sort((a, b) => {
-          if (b.rating !== a.rating) return b.rating - a.rating;
-          return b.user_ratings_total - a.user_ratings_total;
-        });
+        .sort((a, b) => getScore(b) - getScore(a));
     }
   } catch {
     state.demoMode = true;
@@ -308,13 +306,17 @@ async function openModal(id) {
 
   // Phone
   const phoneEl = document.getElementById('modal-phone');
-  phoneEl.textContent = venue.phone || '';
-  phoneEl.style.display = venue.phone ? 'flex' : 'none';
+  if (phoneEl) {
+    phoneEl.textContent = venue.phone || '';
+    phoneEl.style.display = venue.phone ? 'flex' : 'none';
+  }
 
   // Description
   const descEl = document.getElementById('modal-description');
-  descEl.textContent = venue.description || '';
-  descEl.style.display = venue.description ? 'block' : 'none';
+  if (descEl) {
+    descEl.textContent = venue.description || '';
+    descEl.style.display = venue.description ? 'block' : 'none';
+  }
 
   // Meta
   const metaEl = document.getElementById('modal-meta');
@@ -364,11 +366,11 @@ async function openModal(id) {
       if (r?.website) {
         document.getElementById('modal-actions').innerHTML += `<a class="btn-modal-action btn-modal-secondary" href="${r.website}" target="_blank" rel="noopener">🌐 Website</a>`;
       }
-      if (r?.formatted_phone_number) {
+      if (r?.formatted_phone_number && phoneEl) {
         phoneEl.textContent = r.formatted_phone_number;
         phoneEl.style.display = 'flex';
       }
-      if (r?.editorial_summary) {
+      if (r?.editorial_summary && descEl) {
         descEl.textContent = r.editorial_summary;
         descEl.style.display = 'block';
       }

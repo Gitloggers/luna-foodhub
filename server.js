@@ -139,10 +139,12 @@ app.get('/api/places/search', async (req, res) => {
       };
     });
 
-    // Better sorting: rating first, then number of reviews as tie-breaker
+    // Weighted sorting: Rating * (1 - 1/(reviews + 1))
+    // This ensures a 4.9 with 700 reviews beats a 5.0 with only 5 reviews.
+    const getScore = (v) => v.rating * (1 - (1 / (v.user_ratings_total + 1)));
+
     const filtered = results.filter(p => p.rating >= 3.5).sort((a, b) => {
-      if (b.rating !== a.rating) return b.rating - a.rating;
-      return b.user_ratings_total - a.user_ratings_total;
+      return getScore(b) - getScore(a);
     });
     res.json({ results: filtered, status: 'OK' });
   } catch (err) {
