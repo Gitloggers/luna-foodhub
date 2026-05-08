@@ -101,6 +101,48 @@ function initNavbar() {
   });
 }
 
+// ─── Location Search ──────────────────────────────────────────────────────────
+function initLocationSearch() {
+  const box = document.getElementById('btn-change-location');
+  const dropdown = document.getElementById('location-dropdown');
+  const input = document.getElementById('location-search-input');
+
+  box.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    if (dropdown.style.display === 'block') input.focus();
+  });
+
+  input.addEventListener('click', e => e.stopPropagation());
+  
+  input.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      const city = input.value.trim();
+      if (!city) return;
+      
+      dropdown.style.display = 'none';
+      document.getElementById('location-label').textContent = 'Finding ' + city + '...';
+      
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
+        const d = await r.json();
+        if (d && d.length > 0) {
+          state.userLat = parseFloat(d[0].lat);
+          state.userLng = parseFloat(d[0].lon);
+          document.getElementById('location-label').textContent = d[0].display_name.split(',')[0];
+          loadVenues();
+        } else {
+          document.getElementById('location-label').textContent = 'City not found';
+        }
+      } catch {
+        document.getElementById('location-label').textContent = 'Search failed';
+      }
+    }
+  });
+
+  document.addEventListener('click', () => dropdown.style.display = 'none');
+}
+
 // ─── Geolocation ──────────────────────────────────────────────────────────────
 function detectLocation() {
   const label = document.getElementById('location-label');
@@ -116,7 +158,7 @@ function detectLocation() {
       try {
         const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${state.userLat}&lon=${state.userLng}&format=json`);
         const d = await r.json();
-        const city = d.address.city || d.address.town || d.address.municipality || 'Your area';
+        const city = d.address.city || d.address.town || d.address.village || d.address.municipality || 'Your area';
         label.textContent = city;
       } catch { label.textContent = 'Location found'; }
       loadVenues();
@@ -364,7 +406,7 @@ async function openModal(id) {
           </div>`).join('');
       }
       if (r?.website) {
-        document.getElementById('modal-actions').innerHTML += `<a class="btn-modal-action btn-modal-secondary" href="${r.website}" target="_blank" rel="noopener">🌐 Website</a>`;
+        document.getElementById('modal-actions').innerHTML += `<a class="btn-modal-action btn-modal-secondary" href="${r.website}" target="_blank" rel="noopener">🍴 Website / Menu</a>`;
       }
       if (r?.formatted_phone_number && phoneEl) {
         phoneEl.textContent = r.formatted_phone_number;
@@ -478,6 +520,9 @@ Analyze this craving and respond with a JSON object (no markdown, just raw JSON)
         const searchData = await searchRes.json();
         if (searchData.results && searchData.results.length > 0) {
           state.filtered = searchData.results;
+          // Merge AI results into venues so the modal can find them
+          const newVenues = searchData.results.filter(rv => !state.venues.some(v => v.place_id === rv.place_id));
+          state.venues.push(...newVenues);
         } else {
           state.filtered = [];
         }
@@ -526,6 +571,7 @@ function init() {
   initParticles();
   initNavbar();
   initTypingPlaceholder();
+  initLocationSearch();
   detectLocation();
 
   // Filter chips

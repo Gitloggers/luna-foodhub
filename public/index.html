@@ -29,9 +29,14 @@
       </div>
     </div>
 
-    <div class="nav-center" id="nav-location-display">
-      <span class="location-icon">📍</span>
-      <span id="location-label">Detecting location…</span>
+    <div class="nav-center">
+      <div class="location-box" id="btn-change-location">
+        <span class="location-icon">📍</span>
+        <span id="location-label">Detecting location…</span>
+      </div>
+      <div class="location-dropdown" id="location-dropdown" style="display:none;">
+        <input type="text" id="location-search-input" placeholder="Search city (e.g. San Pablo, Alabang)..." />
+      </div>
     </div>
 
     <div class="nav-actions">
@@ -39,7 +44,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
       </button>
       <button class="btn-locate" id="btn-detect-location">
-        <span>📍</span> Locate Me
+        <span>📍</span> <span class="btn-locate-text">Locate Me</span>
       </button>
     </div>
   </nav>
