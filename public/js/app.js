@@ -124,7 +124,7 @@ function initLocationSearch() {
       document.getElementById('location-label').textContent = 'Finding ' + city + '...';
       
       try {
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&countrycodes=ph`);
         const d = await r.json();
         if (d && d.length > 0) {
           state.userLat = parseFloat(d[0].lat);
