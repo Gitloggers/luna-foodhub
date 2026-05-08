@@ -205,9 +205,14 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  const hasKey = PLACES_KEY && PLACES_KEY !== 'your_google_places_api_key_here';
-  console.log(`\n🌙 LUNA Foodhub running at http://localhost:${PORT}`);
-  console.log(`📡 Mode: ${hasKey ? '🟢 Live (Google Places connected)' : '🟡 Demo (no API key)'}`);
-  console.log(`\nTo enable live data, add your keys to the .env file.\n`);
-});
+// Export for Vercel
+module.exports = app;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    const hasKey = PLACES_KEY && PLACES_KEY !== 'your_google_places_api_key_here';
+    console.log(`\n🌙 LUNA Foodhub running at http://localhost:${PORT}`);
+    console.log(`📡 Mode: ${hasKey ? '🟢 Live (Google Places connected)' : '🟡 Demo (no API key)'}`);
+    console.log(`\nTo enable live data, add your keys to the .env file.\n`);
+  });
+}
