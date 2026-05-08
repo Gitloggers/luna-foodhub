@@ -54,23 +54,29 @@ app.get('/api/places/nearby', async (req, res) => {
     const headers = {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': PLACES_KEY,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.rating,places.userRatingCount,places.priceLevel,places.primaryType,places.shortFormattedAddress,places.photos,places.regularOpeningHours'
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.rating,places.userRatingCount,places.priceLevel,places.primaryType,places.shortFormattedAddress,places.photos,places.regularOpeningHours,places.location'
     };
 
     const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
     const data = await response.json();
 
-    if (data.error) {
-      console.error('Places API error:', data.error.status, data.error.message);
-      return res.status(500).json({ error: data.error.status, message: data.error.message });
-    }
+    if (data.error) throw new Error(data.error.message);
 
-    // Map new API format to old API format for frontend compatibility
+    const userLat = parseFloat(lat);
+    const userLng = parseFloat(lng);
+
     const results = (data.places || []).map(p => {
       const priceMap = { 'PRICE_LEVEL_INEXPENSIVE': 1, 'PRICE_LEVEL_MODERATE': 2, 'PRICE_LEVEL_EXPENSIVE': 3, 'PRICE_LEVEL_VERY_EXPENSIVE': 4 };
       let photo_reference = null;
-      if (p.photos && p.photos.length > 0) photo_reference = p.photos[0].name; // e.g. places/123/photos/456
+      if (p.photos && p.photos.length > 0) photo_reference = p.photos[0].name;
       
+      let distance = 0;
+      if (p.location) {
+        const dy = (p.location.latitude - userLat) * 111;
+        const dx = (p.location.longitude - userLng) * 111 * Math.cos(userLat * Math.PI / 180);
+        distance = Math.sqrt(dx*dx + dy*dy);
+      }
+
       return {
         place_id: p.id,
         name: p.displayName ? p.displayName.text : '',
@@ -80,11 +86,17 @@ app.get('/api/places/nearby', async (req, res) => {
         types: p.primaryType ? [p.primaryType] : [],
         vicinity: p.shortFormattedAddress || '',
         photos: photo_reference ? [{ photo_reference }] : [],
-        open_now: p.regularOpeningHours ? p.regularOpeningHours.openNow : undefined
+        open_now: p.regularOpeningHours ? p.regularOpeningHours.openNow : undefined,
+        distance: distance
       };
     });
 
-    const filtered = results.filter(p => p.rating >= 4.0).sort((a, b) => b.rating - a.rating);
+    const getScore = (v) => {
+      const confidence = v.rating * (1 - (1 / (v.user_ratings_total + 1)));
+      return confidence - (v.distance * 0.2);
+    };
+
+    const filtered = results.filter(p => p.rating >= 4.0).sort((a, b) => getScore(b) - getScore(a));
     res.json({ results: filtered, status: 'OK' });
   } catch (err) {
     console.error('Fetch error:', err);
@@ -112,7 +124,7 @@ app.get('/api/places/search', async (req, res) => {
     const headers = {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': PLACES_KEY,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.rating,places.userRatingCount,places.priceLevel,places.primaryType,places.shortFormattedAddress,places.photos,places.regularOpeningHours,places.nationalPhoneNumber'
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.rating,places.userRatingCount,places.priceLevel,places.primaryType,places.shortFormattedAddress,places.photos,places.regularOpeningHours,places.nationalPhoneNumber,places.location'
     };
 
     const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
@@ -120,11 +132,22 @@ app.get('/api/places/search', async (req, res) => {
 
     if (data.error) throw new Error(data.error.message);
 
+    const userLat = parseFloat(lat);
+    const userLng = parseFloat(lng);
+
     const results = (data.places || []).map(p => {
       const priceMap = { 'PRICE_LEVEL_INEXPENSIVE': 1, 'PRICE_LEVEL_MODERATE': 2, 'PRICE_LEVEL_EXPENSIVE': 3, 'PRICE_LEVEL_VERY_EXPENSIVE': 4 };
       let photo_reference = null;
       if (p.photos && p.photos.length > 0) photo_reference = p.photos[0].name;
       
+      // Calculate distance in km
+      let distance = 0;
+      if (p.location) {
+        const dy = (p.location.latitude - userLat) * 111;
+        const dx = (p.location.longitude - userLng) * 111 * Math.cos(userLat * Math.PI / 180);
+        distance = Math.sqrt(dx*dx + dy*dy);
+      }
+
       return {
         place_id: p.id,
         name: p.displayName ? p.displayName.text : '',
@@ -135,17 +158,19 @@ app.get('/api/places/search', async (req, res) => {
         vicinity: p.shortFormattedAddress || '',
         photos: photo_reference ? [{ photo_reference }] : [],
         open_now: p.regularOpeningHours ? p.regularOpeningHours.openNow : undefined,
-        phone: p.nationalPhoneNumber || ''
+        phone: p.nationalPhoneNumber || '',
+        distance: distance
       };
     });
 
-    // Weighted sorting: Rating * (1 - 1/(reviews + 1))
-    // This ensures a 4.9 with 700 reviews beats a 5.0 with only 5 reviews.
-    const getScore = (v) => v.rating * (1 - (1 / (v.user_ratings_total + 1)));
+    // Score = (Rating Confidence) - (Distance Penalty)
+    // Distance penalty: -0.2 points per kilometer
+    const getScore = (v) => {
+      const confidence = v.rating * (1 - (1 / (v.user_ratings_total + 1)));
+      return confidence - (v.distance * 0.2);
+    };
 
-    const filtered = results.filter(p => p.rating >= 3.5).sort((a, b) => {
-      return getScore(b) - getScore(a);
-    });
+    const filtered = results.sort((a, b) => getScore(b) - getScore(a));
     res.json({ results: filtered, status: 'OK' });
   } catch (err) {
     res.status(500).json({ error: err.message });
