@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUNA Foodhub — Discover the Night's Best Bites</title>
+  <meta name="description" content="AI-powered food discovery. Find top-rated restaurants, cafes, and eateries near you based on your cravings." />
+  <meta name="theme-color" content="#080b14" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Particle Background -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- ─── Navbar ─────────────────────────────────────────────────────── -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-logo">
+      <div class="logo-moon">🌙</div>
+      <div class="logo-text">
+        <span class="logo-name">LUNA</span>
+        <span class="logo-sub">foodhub</span>
+      </div>
+    </div>
+
+    <div class="nav-center" id="nav-location-display">
+      <span class="location-icon">📍</span>
+      <span id="location-label">Detecting location…</span>
+    </div>
+
+    <div class="nav-actions">
+      <button class="btn-icon" id="btn-refresh" title="Refresh venues">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      </button>
+      <button class="btn-locate" id="btn-detect-location">
+        <span>📍</span> Locate Me
+      </button>
+    </div>
+  </nav>
+
+  <!-- ─── Hero ────────────────────────────────────────────────────────── -->
+  <section class="hero" id="hero">
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        AI-Powered Food Discovery
+      </div>
+
+      <h1 class="hero-title">
+        Find your next<br />
+        <span class="gradient-text">perfect meal</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        LUNA AI reads your cravings and finds the highest-rated spots near you — restaurants, cafes, bars, and more.
+      </p>
+
+      <!-- AI Craving Bar -->
+      <div class="craving-bar" id="craving-bar">
+        <div class="craving-input-wrap">
+          <div class="craving-sparkle">✨</div>
+          <input
+            type="text"
+            id="craving-input"
+            class="craving-input"
+            placeholder="I'm craving something spicy and cozy…"
+            autocomplete="off"
+            maxlength="200"
+          />
+          <button class="btn-ask-luna" id="btn-ask-luna">
+            <span class="btn-ask-text">Ask LUNA</span>
+            <span class="btn-ask-arrow">→</span>
+            <div class="btn-ask-loader" id="btn-ask-loader"></div>
+          </button>
+        </div>
+
+        <div class="craving-chips">
+          <span class="craving-chips-label">Try:</span>
+          <button class="craving-chip" data-craving="spicy grilled seafood">🌶️ spicy seafood</button>
+          <button class="craving-chip" data-craving="cozy coffee and pastries">☕ cozy coffee</button>
+          <button class="craving-chip" data-craving="sweet desserts and cakes">🍰 sweet desserts</button>
+          <button class="craving-chip" data-craving="hearty Filipino comfort food">🍚 Filipino comfort food</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Orbs -->
+    <div class="hero-orbs" aria-hidden="true">
+      <div class="orb orb-1">🍜</div>
+      <div class="orb orb-2">☕</div>
+      <div class="orb orb-3">🍣</div>
+      <div class="orb orb-4">🍰</div>
+      <div class="orb orb-5">🥩</div>
+    </div>
+
+    <div class="hero-scroll-hint">
+      <div class="scroll-line"></div>
+      <span>Scroll to explore</span>
+    </div>
+  </section>
+
+  <!-- ─── Main Content ─────────────────────────────────────────────────── -->
+  <main class="main-content" id="main-content">
+
+    <!-- AI Result Banner -->
+    <div class="ai-banner" id="ai-banner" style="display:none;">
+      <div class="ai-banner-inner">
+        <div class="ai-banner-icon">🤖</div>
+        <div class="ai-banner-body">
+          <span class="ai-banner-label">LUNA AI Result</span>
+          <p class="ai-banner-text" id="ai-banner-text"></p>
+        </div>
+        <button class="btn-clear-ai" id="btn-clear-ai" title="Clear AI filter">✕</button>
+      </div>
+    </div>
+
+    <!-- Section Header + Filters -->
+    <div class="section-header-wrap">
+      <div class="section-header">
+        <h2 class="section-title" id="section-title">Top Rated Near You</h2>
+        <span class="venue-count" id="venue-count"></span>
+      </div>
+
+      <div class="filter-chips-wrap">
+        <div class="filter-chips" id="filter-chips" role="group" aria-label="Filter by category">
+          <button class="filter-chip active" data-category="all">🌟 All</button>
+          <button class="filter-chip" data-category="restaurant">🍽️ Restaurants</button>
+          <button class="filter-chip" data-category="cafe">☕ Cafes</button>
+          <button class="filter-chip" data-category="bar">🍺 Bars</button>
+          <button class="filter-chip" data-category="bakery">🥐 Bakeries</button>
+          <button class="filter-chip" data-category="dessert">🍰 Desserts</button>
+          <button class="filter-chip" data-category="fastfood">🍔 Fast Food</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Venue Grid -->
+    <div class="venue-grid" id="venue-grid" role="list">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="empty-state" style="display:none;">
+      <div class="empty-icon">🔭</div>
+      <h3>No venues found</h3>
+      <p>Try a different category or expand your search area.</p>
+    </div>
+
+  </main>
+
+  <!-- ─── Venue Detail Modal ──────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-venue-name">
+    <div class="modal" id="venue-modal">
+      <button class="modal-close" id="modal-close" aria-label="Close modal">✕</button>
+      <div class="modal-photo-wrap">
+        <img class="modal-photo" id="modal-photo" src="" alt="" />
+        <div class="modal-photo-overlay"></div>
+        <div class="modal-badge-wrap">
+          <span class="modal-rating-badge" id="modal-rating-badge"></span>
+          <span class="modal-category-badge" id="modal-category-badge"></span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <h2 class="modal-venue-name" id="modal-venue-name"></h2>
+        <p class="modal-address" id="modal-address"></p>
+        <div class="modal-meta" id="modal-meta"></div>
+        <div class="modal-hours" id="modal-hours"></div>
+        <div class="modal-actions" id="modal-actions"></div>
+        <div class="modal-reviews" id="modal-reviews"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Demo Mode Banner ─────────────────────────────────────────────── -->
+  <div class="demo-banner" id="demo-banner" style="display:none;">
+    <span class="demo-dot"></span>
+    <span><strong>Demo Mode</strong> — Showing sample venues. <a href="#" id="demo-setup-link">Add API keys</a> for real data.</span>
+    <button class="demo-close" id="demo-banner-close">✕</button>
+  </div>
+
+  <!-- ─── Setup Guide Modal ────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="setup-overlay" style="display:none;">
+    <div class="modal setup-modal">
+      <button class="modal-close" id="setup-modal-close">✕</button>
+      <h2>🔑 Setup API Keys</h2>
+      <p class="setup-intro">To see real restaurants near you, add these two free API keys:</p>
+
+      <div class="setup-step">
+        <div class="setup-step-num">1</div>
+        <div>
+          <strong>Google Places API</strong>
+          <p>Go to <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a> → Create project → Enable <em>Places API</em> → Create credentials → Copy API key.</p>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-step-num">2</div>
+        <div>
+          <strong>Google Gemini API (Free)</strong>
+          <p>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a> → Create API key → Copy it.</p>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-step-num">3</div>
+        <div>
+          <strong>Add to your project</strong>
+          <p>In your project folder, rename <code>.env.example</code> to <code>.env</code> and paste your keys.</p>
+          <pre class="setup-code">GOOGLE_PLACES_API_KEY=AIza...
+GEMINI_API_KEY=AIza...</pre>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-step-num">4</div>
+        <div>
+          <strong>Restart the server</strong>
+          <p>Run <code>npm start</code> again in your terminal. The app will switch to live mode automatically.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Footer ───────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <span>🌙</span>
+        <span class="footer-name">LUNA <span>foodhub</span></span>
+      </div>
+      <p class="footer-tagline">Discover the night's best bites.</p>
+      <p class="footer-copy">Powered by Google Places & Gemini AI</p>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
