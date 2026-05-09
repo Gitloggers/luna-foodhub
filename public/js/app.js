@@ -480,6 +480,9 @@ async function handleCraving() {
   const query = input.value.trim();
   if (!query) return;
 
+  // Clear input immediately after capturing query
+  input.value = '';
+
   const btn = document.getElementById('btn-ask-luna');
   btn.classList.add('loading');
 
